@@ -4,7 +4,7 @@
            id="cordova-plugin-tesseract"
       version="0.0.1">
     <name>Tesseract Plugin</name>
-    
+
     <engines>
         <engine name="cordova-android" version=">=3.6.0" /><!-- Requires CordovaPlugin.preferences -->
     </engines>
@@ -22,6 +22,8 @@
         </config-file>
 
         <source-file src="src/android/TesseractPlugin.java" target-dir="src/com/tesseract/phonegap" />
+
+        <resource-file src="tessdata/fra.traineddata" target="res/traineddata/fra.traineddata" />
     </platform>
 
 
@@ -41,6 +43,6 @@
         <!-- set the tessdata directory as a resource so it can go with the app -->
         <resource-file src="tessdata" />
     </platform>
-    
+
 
 </plugin>
