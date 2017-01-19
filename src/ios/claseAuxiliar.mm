@@ -8,6 +8,7 @@
 
 
 #import <TesseractOCR/TesseractOCR.h>
+#import <TesseractOCR/G8Constants.h>
 
 static inline double radians (double degrees) {return degrees * M_PI/180;}
 
@@ -54,7 +55,12 @@ static inline double radians (double degrees) {return degrees * M_PI/180;}
     // method to receive a callback to decide whether or not to interrupt
     // Tesseract before it finishes a recognition.
     tesseract.delegate = self;
-    
+
+    tesseract.pageSegmentationMode = G8PageSegmentationModeAutoOSD;
+
+    tesseract.charWhitelist = @"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ@&#'.,-_/()[]{}:+àâæäãçéèêëeîïìíñôœöòóõûùüúÿÀÂÆÄÃÇÉÈÊËEÎÏÌÍÑÔŒÖÒÓÕÛÙÜÚŸ";
+    tesseract.maximumRecognitionTime = 5;
+
     // Specify the image Tesseract should recognize on
     tesseract.image = [uiImage g8_blackAndWhite];
     
