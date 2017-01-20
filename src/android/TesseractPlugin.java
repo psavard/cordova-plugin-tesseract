@@ -15,10 +15,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
+import com.nordnetab.chcp.main.utils.JSONUtils;
 
 import android.app.Activity;
+import android.app.Application;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
@@ -79,6 +82,10 @@ public class TesseractPlugin extends CordovaPlugin {
 
         TessBaseAPI baseApi = new TessBaseAPI();
         baseApi.setDebug(true);
+        baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO_OSD);
+        baseApi.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST,"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ@&#'.,-_/()[]{}:+àâæäãçéèêëeîïìíñôœöòóõûùüúÿÀÂÆÄÃÇÉÈÊËEÎÏÌÍÑÔŒÖÒÓÕÛÙÜÚŸ");
+
+
         baseApi.init(DATA_PATH, language);
         baseApi.setImage(bitmap);
 
@@ -87,9 +94,22 @@ public class TesseractPlugin extends CordovaPlugin {
 
         baseApi.end();
 
-        // You now have the text in recognizedText var, you can do anything with it.
         Log.v(TAG, "Recognized Text: " + recognizedText);
-        return recognizedText;
+
+        String jsonResult = extractData(recognizedText);
+
+        return jsonResult;
+    }
+
+    private String extractData(String recognizedText)
+    {
+        String data = "{\"urls\": [], \"phones\": [], \"addresses\": [], \"raw_data\": ";
+
+        String escapedRawData = JSONObject.quote(recognizedText);
+        data += escapedRawData;
+        data += "}";
+
+        return data;
     }
 
     public String loadLanguage(String language) {

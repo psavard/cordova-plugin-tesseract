@@ -17,7 +17,7 @@
 - (void) recognizeText:(CDVInvokedUrlCommand*)command { //get the callback id 
     NSArray *arguments = command.arguments;
     
-    NSString *language = [arguments objectAtIndex:0];
+    NSString *language = @"fra";//[arguments objectAtIndex:0];
     NSLog(@"%s:%d language=%@", __func__, __LINE__, language);
     NSString *imagedata = [arguments objectAtIndex:1];
 
@@ -35,7 +35,6 @@
 
     claseAuxiliar *cA = [[claseAuxiliar alloc]init];
 
-    
     UIImage *Realimage = [[UIImage alloc] initWithData:data];
 
     
