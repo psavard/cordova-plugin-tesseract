@@ -34,6 +34,7 @@ import android.util.Log;
 import android.content.Context;
 
 public class TesseractPlugin extends CordovaPlugin {
+
     public static final String DATA_PATH = Environment.getExternalStorageDirectory().toString() + "/OCRFolder/";
     private static final String TAG = "TesseractPlugin";
     private String lang = "por";
@@ -132,12 +133,61 @@ public class TesseractPlugin extends CordovaPlugin {
         }
 
         if (!(new File(DATA_PATH + "tessdata/" + lang + ".traineddata")).exists()) {
-            DownloadAndCopy job = new DownloadAndCopy();
-            job.execute(lang);
+            boolean downloadData = preferences.getBoolean("DownloadTesseractData", true);
+            if(downloadData) {
+                DownloadAndCopy job = new DownloadAndCopy();
+                job.execute(lang);
+            }
+            else {
+                CopyFromAssets job = new CopyFromAssets(lang, this.cordova.getActivity().getApplicationContext());
+                job.execute(lang);
+            }
         }
         return "Ok";
     }
 
+    private class CopyFromAssets extends AsyncTask<String, Void, String> {
+        String lang;
+        Context ctx;
+
+        CopyFromAssets(String lang, Context ctx) {
+            this.lang = lang;
+            this.ctx = ctx;
+        }
+
+        @Override
+        protected String doInBackground(String[] params) {
+
+            try {
+                InputStream input;
+                input = ctx.getAssets().open("traineddata/" + this.lang + ".traineddata");
+                OutputStream out = new FileOutputStream(DATA_PATH + "tessdata/" + this.lang + ".traineddata");
+
+                try {
+                    byte[] buf = new byte[1024];
+                    int len;
+                    while ((len = input.read(buf)) > 0) {
+                        out.write(buf, 0, len);
+                    }
+                    out.flush();
+                } finally {
+                    out.close();
+                    input.close();
+                }
+
+            } catch (IOException e) {
+                Log.e(TAG, "Unable to copy " + this.lang + ".traineddata " + e.toString());
+            }
+
+            return "Copied " + this.lang + ".traineddata";
+        }
+
+        @Override
+        protected void onPostExecute(String message) {
+            //process message
+            Log.v(TAG, "Copying of traineddata done! Nothing else to do.");
+        }
+    }
 
     private class DownloadAndCopy extends AsyncTask<String, Void, String> {
 
