@@ -10,22 +10,18 @@ import java.util.zip.GZIPInputStream;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.PermissionHelper;
+import org.apache.cordova.PluginResult;
 import org.json.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
-import com.nordnetab.chcp.main.utils.JSONUtils;
 
-import android.app.Activity;
-import android.app.Application;
-import android.content.Intent;
-import android.content.res.AssetManager;
-import android.content.res.Resources;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
-import android.media.ExifInterface;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.Base64;
@@ -34,13 +30,17 @@ import android.util.Log;
 import android.content.Context;
 
 public class TesseractPlugin extends CordovaPlugin {
+    public static final int PERMISSION_DENIED_ERROR = 20;
+    public static final int SAVE_TO_EXTERNAL_STORAGE = 1;
 
     public static final String DATA_PATH = Environment.getExternalStorageDirectory().toString() + "/OCRFolder/";
     private static final String TAG = "TesseractPlugin";
     private String lang = "por";
+    public CallbackContext callbackContext;
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
+        this.callbackContext = callbackContext;
 
         try {
             String language = args.getString(0);
@@ -114,36 +114,58 @@ public class TesseractPlugin extends CordovaPlugin {
     }
 
     public String loadLanguage(String language) {
+        this.lang = language;
         Log.v(TAG, "Starting process to load OCR language file.");
-        String[] paths = new String[] { DATA_PATH, DATA_PATH + "tessdata/" };
-        for (String path : paths) {
-            File dir = new File(path);
-            if (!dir.exists()) {
-                if (!dir.mkdirs()) {
-                    Log.v(TAG, "Error: Creation of directory " + path + " on sdcard failed");
-                    return "Error: Creation of directory " + path + " on sdcard failed";
-                } else {
-                    Log.v(TAG, "Directory created " + path + " on sdcard");
+        if(!PermissionHelper.hasPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+            PermissionHelper.requestPermission(this, SAVE_TO_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE);
+        }
+        else
+        {
+            String[] paths = new String[] { DATA_PATH, DATA_PATH + "tessdata/" };
+            for (String path : paths) {
+                File dir = new File(path);
+                if (!dir.exists()) {
+                    if (!dir.mkdirs()) {
+                        Log.v(TAG, "Error: Creation of directory " + path + " on sdcard failed");
+                        return "Error: Creation of directory " + path + " on sdcard failed";
+                    } else {
+                        Log.v(TAG, "Directory created " + path + " on sdcard");
+                    }
+                }
+            }
+
+            if (language != null && language != "") {
+                lang = language;
+            }
+
+            if (!(new File(DATA_PATH + "tessdata/" + lang + ".traineddata")).exists()) {
+                boolean downloadData = preferences.getBoolean("DownloadTesseractData", true);
+                if(downloadData) {
+                    DownloadAndCopy job = new DownloadAndCopy();
+                    job.execute(lang);
+                }
+                else {
+                    CopyFromAssets job = new CopyFromAssets(lang, this.cordova.getActivity().getApplicationContext());
+                    job.execute(lang);
                 }
             }
         }
-
-        if (language != null && language != "") {
-            lang = language;
-        }
-
-        if (!(new File(DATA_PATH + "tessdata/" + lang + ".traineddata")).exists()) {
-            boolean downloadData = preferences.getBoolean("DownloadTesseractData", true);
-            if(downloadData) {
-                DownloadAndCopy job = new DownloadAndCopy();
-                job.execute(lang);
-            }
-            else {
-                CopyFromAssets job = new CopyFromAssets(lang, this.cordova.getActivity().getApplicationContext());
-                job.execute(lang);
-            }
-        }
         return "Ok";
+    }
+
+    public void onRequestPermissionResult(int requestCode, String[] permissions,
+                                          int[] grantResults) throws JSONException {
+        for (int r : grantResults) {
+            if (r == PackageManager.PERMISSION_DENIED) {
+                this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, PERMISSION_DENIED_ERROR));
+                return;
+            }
+        }
+        switch (requestCode) {
+            case SAVE_TO_EXTERNAL_STORAGE:
+                this.loadLanguage(this.lang);
+                break;
+        }
     }
 
     private class CopyFromAssets extends AsyncTask<String, Void, String> {
