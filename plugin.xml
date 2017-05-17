@@ -23,7 +23,7 @@
 
         <source-file src="src/android/TesseractPlugin.java" target-dir="src/com/tesseract/phonegap" />
 
-        <resource-file src="tessdata/fra.traineddata" target="res/traineddata/fra.traineddata" />
+        <resource-file src="tessdata/fra.traineddata" target="assets/traineddata/fra.traineddata" />
     </platform>
 
 
